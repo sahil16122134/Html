@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEONPLAY — Free HTML5 Games</title>
+<link rel="stylesheet" href="style.css">
+<!-- Telegram Mini App SDK — enables auto-login for users opening this inside Telegram -->
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+
+<header class="site">
+  <div class="header-inner">
+    <div class="logo-group">
+      <div class="logo-mark">N</div>
+      <div class="site-title">NEONPLAY<small>Free HTML5 Games</small></div>
+    </div>
+    <div class="search-wrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input id="searchInput" type="text" placeholder="Search games...">
+    </div>
+    <nav class="primary" id="mainNav">
+      <button data-cat="All" class="active">Home</button>
+      <button data-cat="Racing">Racing</button>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-inner">
+    <span class="eyebrow fade-in">No downloads · No installs</span>
+    <h1 class="display fade-in d1">Play instantly.<br>Zero friction gaming.</h1>
+    <p class="fade-in d2">A hand-picked arcade of browser games. Click play and you're in — no accounts, no waiting, no nonsense.</p>
+    <div class="hero-ctas fade-in d3">
+      <button class="btn btn-primary" onclick="scrollToId('featured')">▶ Play Featured Game</button>
+      <button class="btn btn-ghost" onclick="scrollToId('allgames')">Browse All Games</button>
+    </div>
+  </div>
+</section>
+
+<div class="wrap">
+
+  <section id="continueSection" style="display:none;">
+    <div class="section-head"><h2>Continue Playing</h2></div>
+    <div id="continueCard"></div>
+  </section>
+
+  <section id="featured">
+    <div class="section-head">
+      <div><h2>Featured Games</h2><div class="sub">Our top picks this week</div></div>
+    </div>
+    <div class="grid featured" id="featuredGrid"></div>
+  </section>
+
+  <section id="recentSection" style="display:none;">
+    <div class="section-head"><h2>Recently Played</h2></div>
+    <div class="row-scroll" id="recentRow"></div>
+  </section>
+
+  <section id="popularSection">
+    <div class="section-head"><h2>Popular Games</h2><div class="sub">Ranked by total plays</div></div>
+    <div class="row-scroll" id="popularRow"></div>
+  </section>
+
+  <section id="favSection" style="display:none;">
+    <div class="section-head"><h2>Favourites</h2></div>
+    <div class="grid" id="favGrid"></div>
+  </section>
+
+  <section id="allgames">
+    <div class="section-head">
+      <div><h2>All Games</h2><div class="sub" id="resultCount"></div></div>
+    </div>
+    <div class="cat-bar" id="catBar">
+      <button class="cat-btn active" data-cat="All">All</button>
+      <button class="cat-btn" data-cat="Racing">Racing</button>
+    </div>
+    <div class="grid" id="allGrid"></div>
+    <div class="empty-msg" id="emptyMsg" style="display:none;">No games match your search. Try a different keyword or category.</div>
+  </section>
+
+  <section id="stats">
+    <div class="section-head"><h2>🎮 Lifetime Stats</h2><div class="sub">Counts only real gameplay time — not time the app is just open</div></div>
+    <div class="stats-panel">
+      <div class="stat-box"><div class="val" id="statPlayTime">0s</div><div class="lab">Lifetime Time Played</div></div>
+      <div class="stat-box"><div class="val" id="statGamesPlayed">0</div><div class="lab">Games Played</div></div>
+      <div class="stat-box"><div class="val" id="statHighScore">0</div><div class="lab">Highest Score</div></div>
+      <div class="stat-box"><div class="val" id="statCrashes">0</div><div class="lab">Total Crashes</div></div>
+      <div class="stat-box"><div class="val" id="statWins">0</div><div class="lab">Total Wins</div></div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="logo-group">
+      <div class="logo-mark">N</div>
+      <div class="site-title">NEONPLAY<small>Free HTML5 Games</small></div>
+    </div>
+    <div class="footer-links">
+      <a href="#" onclick="return false;">About</a>
+      <a href="#" onclick="return false;">Privacy Policy</a>
+      <a href="#" onclick="return false;">Contact</a>
+      <a href="#" onclick="return false;">Disclaimer</a>
+    </div>
+  </div>
+  <div class="footer-bottom">© <span id="year"></span> NEONPLAY. All rights reserved. More games coming soon.</div>
+</footer>
+
+<!-- ===================== GAME VIEW (Highway Rush / Turbo Drift Circuit) ===================== -->
+<div id="gameView">
+  <button id="backToMenuBtn">← Menu</button>
+  <div id="app">
+    <div id="stage">
+      <canvas id="game"></canvas>
+
+      <div id="hud">
+        <div class="hud-chip" id="score-chip">
+          <div class="hud-label">Score</div>
+          <div class="hud-value" id="score-val">0</div>
+        </div>
+        <div class="hud-chip" id="speed-chip">
+          <div class="hud-label">Speed</div>
+          <div class="hud-value" id="speed-val">0<span>km/h</span></div>
+        </div>
+      </div>
+
+      <div id="overlay">
+        <h1>🏁 HIGHWAY RUSH</h1>
+        <p>Steer with the arrows, hold GAS to accelerate, hold BRAKE to slow down. Weave through traffic — everyone drives the same direction, so watch your lane!</p>
+        <button class="go-btn" id="start-btn">Start Engine</button>
+      </div>
+
+      <div id="controls">
+        <div class="ctrl-group" id="steer-controls">
+          <div class="ctrl-btn" id="btn-left">◀</div>
+          <div class="ctrl-btn" id="btn-right">▶</div>
+        </div>
+        <div class="ctrl-group" id="pedal-controls">
+          <div class="ctrl-btn" id="btn-brake">
+            <div class="pedal-label"><span>🛑</span><small>BRAKE</small></div>
+          </div>
+          <div class="ctrl-btn" id="btn-throttle">
+            <div class="pedal-label"><span>⛽</span><small>GAS</small></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== INTERSTITIAL AD (Monetag) ===================== -->
+<div id="interstitialAd" class="interstitial-overlay">
+  <div class="interstitial-content">
+    <div class="interstitial-spinner"></div>
+    <p id="interstitialStatusText">Loading ad…</p>
+  </div>
+</div>
+
+<!-- Monetag ad SDK -->
+<script src='//libtl.com/sdk.js' data-zone='11505760' data-sdk='show_11505760'></script>
+<script src="script.js"></script>
+</body>
+</html>
