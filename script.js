@@ -480,12 +480,43 @@
 
   document.getElementById('year').textContent = new Date().getFullYear();
 
-  /* Back-to-menu button on the game overlay */
-  document.getElementById('backToMenuBtn').addEventListener('click', function(){
+  /* Returns from the game view to the homepage. Reused by both the manual
+     "← Menu" button and the automatic post-game-over countdown. */
+  function goToMenu(){
     document.getElementById('gameView').classList.remove('open');
     if(window.exitHighwayRush) window.exitHighwayRush();
     renderAll(); // refresh the stats panel with whatever play time just accrued
-  });
+  }
+
+  document.getElementById('backToMenuBtn').addEventListener('click', goToMenu);
+
+  /* ---- Game-over popup: score + banner ad, auto-closes after 5s with a
+     visible countdown, then returns to the homepage. ---- */
+  const gameOverPopup = document.getElementById('gameOverPopup');
+  const gameOverScoreVal = document.getElementById('gameOverScoreVal');
+  const gameOverCountdown = document.getElementById('gameOverCountdown');
+  let gameOverTimer = null;
+
+  window.showGameOverPopup = function(score){
+    if(!gameOverPopup) return;
+    if(gameOverScoreVal) gameOverScoreVal.textContent = score;
+    gameOverPopup.classList.add('open');
+
+    let n = 5;
+    if(gameOverCountdown) gameOverCountdown.textContent = n;
+    if(gameOverTimer) clearInterval(gameOverTimer);
+    gameOverTimer = setInterval(function(){
+      n -= 1;
+      if(n <= 0){
+        clearInterval(gameOverTimer);
+        gameOverTimer = null;
+        gameOverPopup.classList.remove('open');
+        goToMenu();
+        return;
+      }
+      if(gameOverCountdown) gameOverCountdown.textContent = n;
+    }, 1000);
+  };
 
   /* initial render */
   renderAll();
@@ -871,7 +902,7 @@
     if (window.setHighScore) window.setHighScore(Math.floor(score));
     if (window.increaseCrash) window.increaseCrash();
     if (window.renderHomeAll) window.renderHomeAll();
-    showGameOver();
+    if (window.showGameOverPopup) window.showGameOverPopup(Math.floor(score));
   }
 
   function render(){
@@ -916,18 +947,6 @@
       <h1>🏁 HIGHWAY RUSH</h1>
       <p>Steer with the arrows, hold GAS to accelerate, hold BRAKE to slow down. Traffic always drives the correct way — weave past without colliding!</p>
       <button class="go-btn" id="start-btn">Start Engine</button>
-    `;
-    document.getElementById('start-btn').addEventListener('click', beginGame);
-  }
-
-  function showGameOver(){
-    overlay.classList.remove('hidden');
-    overlay.innerHTML = `
-      <h1>💥 CRASHED</h1>
-      <div class="big-score">${Math.floor(score)}</div>
-      <div class="sub-score">FINAL SCORE</div>
-      <p>Better luck next time. Watch your lane and manage your speed!</p>
-      <button class="go-btn" id="start-btn">Race Again</button>
     `;
     document.getElementById('start-btn').addEventListener('click', beginGame);
   }

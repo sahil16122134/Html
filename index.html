@@ -45,6 +45,21 @@
 
 <div class="wrap">
 
+  <!-- ===================== ADSTERRA — Homepage banner ad ===================== -->
+  <div class="ad-slot" id="adsterraBannerSlot">
+    <span class="ad-slot-label">Advertisement</span>
+    <script>
+      atOptions = {
+        'key' : 'c31fc976bf95a3faabfc178c0ff9b825',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+    </script>
+    <script src="https://www.highperformanceformat.com/c31fc976bf95a3faabfc178c0ff9b825/invoke.js"></script>
+  </div>
+
   <section id="continueSection" style="display:none;">
     <div class="section-head"><h2>Continue Playing</h2></div>
     <div id="continueCard"></div>
@@ -141,6 +156,44 @@
       </div>
     </div>
   </div>
+
+  <!-- ===================== ADSTERRA — Gameplay-bottom banner ad ===================== -->
+  <div class="ad-slot ad-slot-ingame" id="gameplayBannerSlot">
+    <span class="ad-slot-label">Advertisement</span>
+    <script>
+      atOptions = {
+        'key' : 'c31fc976bf95a3faabfc178c0ff9b825',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+    </script>
+    <script src="https://www.highperformanceformat.com/c31fc976bf95a3faabfc178c0ff9b825/invoke.js"></script>
+  </div>
+</div>
+
+<!-- ===================== GAME OVER POPUP (score + banner ad + auto-return countdown) ===================== -->
+<div id="gameOverPopup" class="interstitial-overlay">
+  <div class="interstitial-content">
+    <h1 class="game-over-title">💥 CRASHED</h1>
+    <div class="big-score" id="gameOverScoreVal">0</div>
+    <div class="sub-score">FINAL SCORE</div>
+    <div class="ad-slot" id="gameOverBannerSlot">
+      <span class="ad-slot-label">Advertisement</span>
+      <script>
+        atOptions = {
+          'key' : 'c31fc976bf95a3faabfc178c0ff9b825',
+          'format' : 'iframe',
+          'height' : 50,
+          'width' : 320,
+          'params' : {}
+        };
+      </script>
+      <script src="https://www.highperformanceformat.com/c31fc976bf95a3faabfc178c0ff9b825/invoke.js"></script>
+    </div>
+    <p id="gameOverStatusText">Returning to menu in <span id="gameOverCountdown">5</span>…</p>
+  </div>
 </div>
 
 <!-- ===================== INTERSTITIAL AD (Monetag) ===================== -->
@@ -151,8 +204,25 @@
     <p id="interstitialStatusText">Loading ad…</p>
     <button class="btn btn-primary" id="interstitialActionBtn" style="display:none;">▶ Watch Ad & Play</button>
     <button class="btn btn-ghost" id="interstitialCancelBtn" style="display:none;">Maybe later</button>
+    <!-- ===================== ADSTERRA — Watch-ad-to-play popup banner ===================== -->
+    <div class="ad-slot" id="promptBannerSlot">
+      <span class="ad-slot-label">Advertisement</span>
+      <script>
+        atOptions = {
+          'key' : 'c31fc976bf95a3faabfc178c0ff9b825',
+          'format' : 'iframe',
+          'height' : 50,
+          'width' : 320,
+          'params' : {}
+        };
+      </script>
+      <script src="https://www.highperformanceformat.com/c31fc976bf95a3faabfc178c0ff9b825/invoke.js"></script>
+    </div>
   </div>
 </div>
+
+<!-- Adsterra Popunder — no placement needed, fires on click site-wide -->
+<script src="https://pl30711363.effectivecpmnetwork.com/4f/6a/6c/4f6a6c13d216752a48ad8431daeb0c25.js"></script>
 
 <!-- Monetag ad SDK -->
 <script src='//libtl.com/sdk.js' data-zone='11505760' data-sdk='show_11505760'></script>
