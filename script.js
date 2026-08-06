@@ -1,4 +1,18 @@
 /* =========================================================================
+   SERVICE WORKER REGISTRATION (sw.js — Monetag push/ad worker)
+   Must be served from the site root so its scope covers the whole domain.
+   ========================================================================= */
+(function(){
+  "use strict";
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', function(){
+      navigator.serviceWorker.register('/sw.js')
+        .catch(function(err){ console.warn('sw.js registration failed:', err); });
+    });
+  }
+})();
+
+/* =========================================================================
    MONETAG — IN-APP AUTO INTERSTITIAL
    Fires automatically on Monetag's own schedule (frequency/capping/interval),
    independent of the "every 4-5 games played" interstitial below.
@@ -185,55 +199,116 @@
   function getContinue(){ return LS.get(CONTINUE_KEY, null); }
   function setContinue(id){ LS.set(CONTINUE_KEY, id); }
 
-  /* ============ INTERSTITIAL AD (every 4-5 plays) ============
-     Instead of gating every single play behind an ad, we only show a
-     Monetag interstitial after every 4th or 5th time a game is launched
-     (the exact number is randomised between 4 and 5 each cycle so it
-     doesn't feel too predictable). Every other play starts instantly. */
+  /* ============ AD FLOW ============
+     Two independent ad triggers, both using the same Monetag interstitial
+     zone (11505760) so it's consistent with what plays in the Telegram bot:
+
+     1) WATCH-AD-TO-PLAY — every time a playable game is launched, the
+        player sees a prompt, watches the interstitial, then a 3-2-1
+        countdown, then the game opens.
+     2) AUTO IN-GAME AD — separately, after every 3rd or 4th game played,
+        an extra interstitial fires automatically (no prompt) right as
+        the game view opens. */
   const MONETAG_ZONE_ID = '11505760'; // must match the data-zone on the Monetag <script> tag in index.html
-  const PLAYS_KEY = 'np_playsSinceAd';
-  const THRESHOLD_KEY = 'np_adThreshold';
 
-  function randomThreshold(){ return Math.random() < 0.5 ? 4 : 5; }
-
-  let playsSinceAd = Number(sessionStorage.getItem(PLAYS_KEY)) || 0;
-  let adThreshold = Number(sessionStorage.getItem(THRESHOLD_KEY)) || randomThreshold();
-  sessionStorage.setItem(THRESHOLD_KEY, adThreshold);
+  const interstitialAd = document.getElementById('interstitialAd');
+  const interstitialSpinner = document.getElementById('interstitialSpinner');
+  const interstitialCountdown = document.getElementById('interstitialCountdown');
+  const interstitialStatusText = document.getElementById('interstitialStatusText');
+  const interstitialActionBtn = document.getElementById('interstitialActionBtn');
+  const interstitialCancelBtn = document.getElementById('interstitialCancelBtn');
 
   let pendingGameId = null;
-  const interstitialAd = document.getElementById('interstitialAd');
-  const interstitialStatusText = document.getElementById('interstitialStatusText');
 
-  /* Hands off to the real Monetag interstitial. Monetag renders and times
-     its own ad creative — we just wait on the promise it gives us and
-     start the game once it resolves (played, closed, or failed to fill). */
-  function playInterstitialThenStart(gameId){
+  function getMonetagShowFn(){ return window['show_' + MONETAG_ZONE_ID]; }
+
+  function setOverlayState(state, text){
+    // state: 'prompt' | 'loading' | 'countdown'
+    interstitialStatusText.textContent = text || '';
+    interstitialSpinner.style.display = state === 'loading' ? 'block' : 'none';
+    interstitialCountdown.style.display = state === 'countdown' ? 'block' : 'none';
+    interstitialActionBtn.style.display = state === 'prompt' ? 'inline-flex' : 'none';
+    interstitialCancelBtn.style.display = state === 'prompt' ? 'inline-flex' : 'none';
+  }
+
+  function showWatchAdPrompt(gameId){
     pendingGameId = gameId;
     interstitialAd.classList.add('open');
-    interstitialStatusText.textContent = 'Loading ad…';
+    setOverlayState('prompt', 'Watch a short ad to unlock this game');
+  }
 
-    const showAd = window['show_' + MONETAG_ZONE_ID];
+  function closeOverlayCancelled(){
+    interstitialAd.classList.remove('open');
+    pendingGameId = null;
+  }
 
-    function proceed(){
-      interstitialAd.classList.remove('open');
-      const id = pendingGameId;
-      pendingGameId = null;
-      actuallyStartGame(id);
+  function runInterstitialThenCountdown(){
+    setOverlayState('loading', 'Loading ad…');
+    const showAd = getMonetagShowFn();
+
+    function afterAd(){
+      runCountdown();
     }
 
     if(typeof showAd !== 'function'){
-      console.warn('Monetag SDK not found (check the zone ID in index.html and script.js). Skipping ad.');
-      proceed();
+      console.warn('Monetag SDK not found (check the zone ID in index.html). Skipping ad.');
+      afterAd();
       return;
     }
 
     showAd()
-      .then(proceed)
+      .then(afterAd)
       .catch(function(err){
         // No fill / ad failed to load — fail open so the player isn't stuck.
         console.warn('Monetag ad did not play:', err);
-        proceed();
+        afterAd();
       });
+  }
+
+  function runCountdown(){
+    let n = 3;
+    setOverlayState('countdown', 'Ad completed! Game starting in…');
+    interstitialCountdown.textContent = n;
+    const timer = setInterval(function(){
+      n -= 1;
+      if(n <= 0){
+        clearInterval(timer);
+        interstitialAd.classList.remove('open');
+        const id = pendingGameId;
+        pendingGameId = null;
+        if(id) actuallyStartGame(id);
+        return;
+      }
+      interstitialCountdown.textContent = n;
+    }, 1000);
+  }
+
+  interstitialActionBtn.addEventListener('click', runInterstitialThenCountdown);
+  interstitialCancelBtn.addEventListener('click', closeOverlayCancelled);
+
+  /* ---- Auto in-game ad: fires automatically every 3rd/4th game played,
+     with no prompt, using the same interstitial zone. ---- */
+  const AUTO_AD_KEY = 'np_playsSinceAutoAd';
+  const AUTO_AD_THRESHOLD_KEY = 'np_autoAdThreshold';
+  function randomAutoThreshold(){ return Math.random() < 0.5 ? 3 : 4; }
+
+  let playsSinceAutoAd = Number(sessionStorage.getItem(AUTO_AD_KEY)) || 0;
+  let autoAdThreshold = Number(sessionStorage.getItem(AUTO_AD_THRESHOLD_KEY)) || randomAutoThreshold();
+  sessionStorage.setItem(AUTO_AD_THRESHOLD_KEY, autoAdThreshold);
+
+  function maybeFireAutoInGameAd(){
+    playsSinceAutoAd += 1;
+    sessionStorage.setItem(AUTO_AD_KEY, playsSinceAutoAd);
+    if(playsSinceAutoAd >= autoAdThreshold){
+      playsSinceAutoAd = 0;
+      autoAdThreshold = randomAutoThreshold();
+      sessionStorage.setItem(AUTO_AD_KEY, 0);
+      sessionStorage.setItem(AUTO_AD_THRESHOLD_KEY, autoAdThreshold);
+      const showAd = getMonetagShowFn();
+      if(typeof showAd === 'function'){
+        showAd().catch(function(){ /* no fill / not ready — ignore */ });
+      }
+    }
   }
 
   /* ============ PLAY ACTION ============ */
@@ -242,18 +317,7 @@
     if(!game) return;
 
     if(game.playable){
-      playsSinceAd += 1;
-      sessionStorage.setItem(PLAYS_KEY, playsSinceAd);
-
-      if(playsSinceAd >= adThreshold){
-        playsSinceAd = 0;
-        adThreshold = randomThreshold();
-        sessionStorage.setItem(PLAYS_KEY, 0);
-        sessionStorage.setItem(THRESHOLD_KEY, adThreshold);
-        playInterstitialThenStart(id);
-      }else{
-        actuallyStartGame(id);
-      }
+      showWatchAdPrompt(id);
     }else{
       // Demo placeholder card — no ad, no real game wired up.
       actuallyStartGame(id);
@@ -272,6 +336,7 @@
     if(game.playable){
       document.getElementById('gameView').classList.add('open');
       if(window.launchHighwayRush) window.launchHighwayRush();
+      maybeFireAutoInGameAd();
     }else{
       window.open(game.url === "#" ? "javascript:void(0)" : game.url, "_blank");
     }
@@ -321,25 +386,11 @@
   };
 
   /* ============ SECTION RENDERERS ============ */
-  function renderFeatured(){
-    const feat = games.filter(g => g.featured);
-    document.getElementById('featuredGrid').innerHTML = feat.map(g => cardHTML(g, {featured:true})).join("");
-  }
-
   function renderPopular(){
     const pc = getPlayCounts();
     const sorted = [...games].sort((a,b) => (pc[b.id]||0) - (pc[a.id]||0));
     const top = sorted.slice(0,8);
     document.getElementById('popularRow').innerHTML = top.map(g => cardHTML(g, {showDesc:false})).join("");
-  }
-
-  function renderRecent(){
-    const recentIds = getRecent();
-    const section = document.getElementById('recentSection');
-    if(recentIds.length === 0){ section.style.display = "none"; return; }
-    section.style.display = "block";
-    const recentGames = recentIds.map(id => games.find(g => g.id === id)).filter(Boolean);
-    document.getElementById('recentRow').innerHTML = recentGames.map(g => cardHTML(g, {showDesc:false})).join("");
   }
 
   function renderFavourites(){
@@ -386,9 +437,7 @@
   }
 
   function renderAll(){
-    renderFeatured();
     renderPopular();
-    renderRecent();
     renderFavourites();
     renderContinue();
     renderAllGames();
