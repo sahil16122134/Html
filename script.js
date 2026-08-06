@@ -224,21 +224,26 @@
 
   function setOverlayState(state, text){
     // state: 'prompt' | 'loading' | 'countdown'
-    interstitialStatusText.textContent = text || '';
-    interstitialSpinner.style.display = state === 'loading' ? 'block' : 'none';
-    interstitialCountdown.style.display = state === 'countdown' ? 'block' : 'none';
-    interstitialActionBtn.style.display = state === 'prompt' ? 'inline-flex' : 'none';
-    interstitialCancelBtn.style.display = state === 'prompt' ? 'inline-flex' : 'none';
+    if(interstitialStatusText) interstitialStatusText.textContent = text || '';
+    if(interstitialSpinner) interstitialSpinner.style.display = state === 'loading' ? 'block' : 'none';
+    if(interstitialCountdown) interstitialCountdown.style.display = state === 'countdown' ? 'block' : 'none';
+    if(interstitialActionBtn) interstitialActionBtn.style.display = state === 'prompt' ? 'inline-flex' : 'none';
+    if(interstitialCancelBtn) interstitialCancelBtn.style.display = state === 'prompt' ? 'inline-flex' : 'none';
   }
 
   function showWatchAdPrompt(gameId){
     pendingGameId = gameId;
+    if(!interstitialAd){
+      // Overlay markup missing from this page — fail open and just start the game.
+      actuallyStartGame(gameId);
+      return;
+    }
     interstitialAd.classList.add('open');
     setOverlayState('prompt', 'Watch a short ad to unlock this game');
   }
 
   function closeOverlayCancelled(){
-    interstitialAd.classList.remove('open');
+    if(interstitialAd) interstitialAd.classList.remove('open');
     pendingGameId = null;
   }
 
@@ -268,23 +273,23 @@
   function runCountdown(){
     let n = 3;
     setOverlayState('countdown', 'Ad completed! Game starting in…');
-    interstitialCountdown.textContent = n;
+    if(interstitialCountdown) interstitialCountdown.textContent = n;
     const timer = setInterval(function(){
       n -= 1;
       if(n <= 0){
         clearInterval(timer);
-        interstitialAd.classList.remove('open');
+        if(interstitialAd) interstitialAd.classList.remove('open');
         const id = pendingGameId;
         pendingGameId = null;
         if(id) actuallyStartGame(id);
         return;
       }
-      interstitialCountdown.textContent = n;
+      if(interstitialCountdown) interstitialCountdown.textContent = n;
     }, 1000);
   }
 
-  interstitialActionBtn.addEventListener('click', runInterstitialThenCountdown);
-  interstitialCancelBtn.addEventListener('click', closeOverlayCancelled);
+  if(interstitialActionBtn) interstitialActionBtn.addEventListener('click', runInterstitialThenCountdown);
+  if(interstitialCancelBtn) interstitialCancelBtn.addEventListener('click', closeOverlayCancelled);
 
   /* ---- Auto in-game ad: fires automatically every 3rd/4th game played,
      with no prompt, using the same interstitial zone. ---- */
